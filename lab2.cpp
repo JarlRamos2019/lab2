@@ -30,24 +30,33 @@ public:
 class Box {
 public:
 	float w;
+	float h;
 	float dir;
 	float vel[2];  //vector2
 	float pos[2];
 	Box() {
 	    w = 20.0f;
+	    h = 20.0f;
 	    dir = 25.0f;
 	    pos[0] = g.xres / 2.0f;
 	    pos[1] = g.yres / 2.0f;
 	    vel[0] = vel[1] = 0.0f;
 	}
-	Box(float width, float d, float p0, float p1) {
+	Box(float width, float height, float d, float p0, float p1) {
 	    dir = d;
 	    w = width;
+	    h = height;
 	    pos[0] = p0;
 	    pos[1] = p1;
 	    vel[0] = vel[1] = 0.0;
 	}
-} box, particle(4.0f, 0.0f, g.xres / 2.0f, g.yres / 4.0f * 3.0f);
+} box, 
+  rec1(50.0f, 10.0f, 0.0f, 60, g.yres - 50),
+  rec2(50.0f, 10.0f, 0.0f, 100, g.yres - 80),
+  rec3(50.0f, 10.0f, 0.0f, 140, g.yres - 110),
+  rec4(50.0f, 10.0f, 0.0f, 180, g.yres - 140),
+  rec5(50.0f, 10.0f, 0.0f, 220, g.yres - 170),
+  particle(4.0f, 4.0f, 0.0f, g.xres / 2.0f, g.yres / 4.0f * 3.0f);
 
 Box particles[MAX_PARTICLES];
 int n = 0; //number of elements
@@ -73,6 +82,8 @@ public:
 //Function prototypes
 void init_opengl(void);
 void physics(void);
+void build_rectangle(Box rec);
+void rectangle_collision(Box rec, Box part);
 void render(void);
 
 
@@ -304,6 +315,9 @@ void physics()
 	particles[i].pos[1] += particles[i].vel[1];
 	//
 	// check for collision
+	//
+	
+	/*
 	if (particles[i].pos[1] < (box.pos[1] + box.w) &&
 	    particles[i].pos[1] > (box.pos[1] - box.w) &&
 	    particles[i].pos[0] > (box.pos[0] - box.w) &&
@@ -311,6 +325,8 @@ void physics()
 		    particles[i].vel[1] = 0.0;
 		    particles[i].vel[0] += 0.01;
 	}
+	*/
+
 	if (particles[i].pos[1] < 0.0) {
  #define OPT_1
  #ifndef OPT_1
@@ -324,11 +340,38 @@ void physics()
     }
 }
 
+void build_rectangle(Box rec)
+{
+	glPushMatrix();
+	glColor3ub(150, 160, 225);
+	glTranslatef(rec.pos[0], rec.pos[1], 0.0f); //move it somewhere
+	glBegin(GL_QUADS);
+		glVertex2f(-rec.w, -rec.h);
+		glVertex2f(-rec.w,  rec.h);
+		glVertex2f( rec.w,  rec.h);
+		glVertex2f( rec.w, -rec.h);
+	glEnd();
+	glPopMatrix();
+}
+
+void rectangle_collision(Box rec, Box part)
+{
+    if (part.pos[1] < (rec.pos[1] + rec.h) &&
+        part.pos[1] > (rec.pos[1] - rec.h) &&
+	part.pos[0] > (rec.pos[0] - box.w) &&
+	part.pos[0] < (rec.pos[0] + box.w)) {
+	    part.vel[1] = 0.0;
+	    part.vel[0] += 0.01;
+	}
+}
+
 void render()
 {
 	//
 	glClear(GL_COLOR_BUFFER_BIT);
 	//Draw box.
+	
+	/*
 	glPushMatrix();
 	glColor3ub(150, 160, 220);
 	glTranslatef(box.pos[0], box.pos[1], 0.0f); //move it somewhere
@@ -339,6 +382,25 @@ void render()
 		glVertex2f( box.w, -box.w);
 	glEnd();
 	glPopMatrix();
+	*/
+
+	build_rectangle(rec1);
+	build_rectangle(rec2);
+	build_rectangle(rec3);
+	build_rectangle(rec4);
+	build_rectangle(rec5);
+/*
+	glPushMatrix();
+	glColor3ub(150, 160, 225);
+	glTranslatef(box2.pos[0], box2.pos[1], 0.0f); //move it somewhere
+	glBegin(GL_QUADS);
+		glVertex2f(-box2.w, -box2.h);
+		glVertex2f(-box2.w,  box2.h);
+		glVertex2f( box2.w,  box2.h);
+		glVertex2f( box2.w, -box2.h);
+	glEnd();
+	glPopMatrix();
+*/
 	for (int i = 0; i < n; i++) {
 	    glPushMatrix();
 	    glColor3ub(150, 160, 255);

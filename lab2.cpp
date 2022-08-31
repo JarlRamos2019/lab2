@@ -316,7 +316,11 @@ void physics()
 	//
 	// check for collision
 	//
-	
+	rectangle_collision(rec1, particles[i]);
+	rectangle_collision(rec2, particles[i]);
+	rectangle_collision(rec3, particles[i]);
+	rectangle_collision(rec4, particles[i]);
+	rectangle_collision(rec5, particles[i]);
 	/*
 	if (particles[i].pos[1] < (box.pos[1] + box.w) &&
 	    particles[i].pos[1] > (box.pos[1] - box.w) &&
@@ -326,7 +330,6 @@ void physics()
 		    particles[i].vel[0] += 0.01;
 	}
 	*/
-
 	if (particles[i].pos[1] < 0.0) {
  #define OPT_1
  #ifndef OPT_1

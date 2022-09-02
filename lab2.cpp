@@ -83,7 +83,7 @@ public:
 void init_opengl(void);
 void physics(void);
 void build_rectangle(Box rec);
-void rectangle_collision(Box rec, Box part);
+void rectangle_collision(Box rec, Box & part);
 void render(void);
 
 
@@ -300,6 +300,7 @@ void physics()
     particle.pos[1] += particle.vel[1];
     //
     // check for collision
+    /*
     if (particle.pos[1] < (box.pos[1] + box.w) &&
 	particle.pos[1] > (box.pos[1] - box.w) &&
         particle.pos[0] > (box.pos[0] - box.w) &&
@@ -307,6 +308,7 @@ void physics()
 		particle.vel[1] = 0.0;
 		particle.vel[0] += 0.01;
     }
+    */
     //TODO: Use while loop to process moved array element
     //TODO: Track down particle-generating bug
     for (int i = 0; i < n; i++) {
@@ -331,14 +333,7 @@ void physics()
 	}
 	*/
 	if (particles[i].pos[1] < 0.0) {
- #define OPT_1
- #ifndef OPT_1
-	    //this code optimized below
-	    particles[i] = particles[n - 1];
-	    n = n - 1;
- #else // OPT_1
 	    particles[i] = particles[--n];
- #endif // OPT_1
 	}
     }
 }
@@ -357,12 +352,12 @@ void build_rectangle(Box rec)
 	glPopMatrix();
 }
 
-void rectangle_collision(Box rec, Box part)
+void rectangle_collision(Box rec, Box & part)
 {
     if (part.pos[1] < (rec.pos[1] + rec.h) &&
         part.pos[1] > (rec.pos[1] - rec.h) &&
-	part.pos[0] > (rec.pos[0] - box.w) &&
-	part.pos[0] < (rec.pos[0] + box.w)) {
+	part.pos[0] > (rec.pos[0] - rec.w) &&
+	part.pos[0] < (rec.pos[0] + rec.w)) {
 	    part.vel[1] = 0.0;
 	    part.vel[0] += 0.01;
 	}

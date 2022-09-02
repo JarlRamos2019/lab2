@@ -51,11 +51,11 @@ public:
 	    vel[0] = vel[1] = 0.0;
 	}
 } box, 
-  rec1(50.0f, 10.0f, 0.0f, 60, g.yres - 50),
-  rec2(50.0f, 10.0f, 0.0f, 100, g.yres - 80),
-  rec3(50.0f, 10.0f, 0.0f, 140, g.yres - 110),
-  rec4(50.0f, 10.0f, 0.0f, 180, g.yres - 140),
-  rec5(50.0f, 10.0f, 0.0f, 220, g.yres - 170),
+  rec1(50.0f, 10.0f, 0.0f, 60, g.yres - 30),
+  rec2(50.0f, 10.0f, 0.0f, 100, g.yres - 60),
+  rec3(50.0f, 10.0f, 0.0f, 140, g.yres - 90),
+  rec4(50.0f, 10.0f, 0.0f, 180, g.yres - 120),
+  rec5(50.0f, 10.0f, 0.0f, 220, g.yres - 150),
   particle(4.0f, 4.0f, 0.0f, g.xres / 2.0f, g.yres / 4.0f * 3.0f);
 
 Box particles[MAX_PARTICLES];
@@ -213,6 +213,7 @@ void make_particle(int x, int y)
     }
     printf("make particle(%i, %i)\n", x, y); fflush(stdout);
     particles[n].w = 4.0;
+    particles[n].h = 4.0;
     particles[n].pos[0] = x;
     particles[n].pos[1] = y;
     particles[n].vel[0] = particles[n].vel[1] = 0.0f;
@@ -295,7 +296,7 @@ void init_opengl(void)
 
 void physics()
 {
-    particle.vel[1] -= 0.01;
+    particle.vel[1] -= 0.10;
     particle.pos[0] += particle.vel[0];
     particle.pos[1] += particle.vel[1];
     //
@@ -312,7 +313,7 @@ void physics()
     //TODO: Use while loop to process moved array element
     //TODO: Track down particle-generating bug
     for (int i = 0; i < n; i++) {
-	particles[i].vel[1] -= 0.01;
+	particles[i].vel[1] -= 0.05;
 	particles[i].pos[0] += particles[i].vel[0];
 	particles[i].pos[1] += particles[i].vel[1];
 	//
@@ -352,13 +353,28 @@ void build_rectangle(Box rec)
 	glPopMatrix();
 }
 
+void build_circle()
+{
+    // TODO: declare the radius
+    glPushMatrix();
+    glColor3ub(150, 160, 225);
+    glTranslatef(700, -75, 0.0f);
+    glBegin(GL_LINE_STRIP);
+    		for (int i = 0; i < 360; ++i)
+		{
+		    ;
+		}
+    glEnd();
+    glPopMatrix();
+}
+
 void rectangle_collision(Box rec, Box & part)
 {
-    if (part.pos[1] < (rec.pos[1] + rec.h) &&
-        part.pos[1] > (rec.pos[1] - rec.h) &&
-	part.pos[0] > (rec.pos[0] - rec.w) &&
-	part.pos[0] < (rec.pos[0] + rec.w)) {
-	    part.vel[1] = 0.0;
+    if ((part.pos[1] - part.h) < (rec.pos[1] + rec.h) &&
+        (part.pos[1] + part.h) > (rec.pos[1] - rec.h) &&
+	(part.pos[0] + part.w) > (rec.pos[0] - rec.w) &&
+	(part.pos[0] - part.w) < (rec.pos[0] + rec.w)) {
+	    part.vel[1] = 0.00;
 	    part.vel[0] += 0.01;
 	}
 }

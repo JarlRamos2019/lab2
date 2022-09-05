@@ -1,5 +1,5 @@
-//modified by:
-//date:
+//modified by: Jarl Ramos
+//date: 4 September 2022
 //
 //author: Gordon Griesel
 //date: Spring 2022
@@ -16,8 +16,18 @@ using namespace std;
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
+#include <GL/glut.h>
+//#include "log.h"
+//#include "fonts.h"
 
 const int MAX_PARTICLES = 1000;
+const int DEG_IN_CIRCLE = 360;
+
+const char str1[] = "Requirements";
+const char str2[] = "Design";
+const char str3[] = "Coding";
+const char str4[] = "Testing";
+const char str5[] = "Maintenance";
 
 //some structures
 
@@ -55,10 +65,17 @@ public:
   rec2(50.0f, 10.0f, 0.0f, 100, g.yres - 60),
   rec3(50.0f, 10.0f, 0.0f, 140, g.yres - 90),
   rec4(50.0f, 10.0f, 0.0f, 180, g.yres - 120),
-  rec5(50.0f, 10.0f, 0.0f, 220, g.yres - 150),
-  particle(4.0f, 4.0f, 0.0f, g.xres / 2.0f, g.yres / 4.0f * 3.0f);
+  rec5(50.0f, 10.0f, 0.0f, 220, g.yres - 150);
+
+enum Quadrant {
+    I,
+    II,
+    III,
+    IV
+};
 
 Box particles[MAX_PARTICLES];
+Box riemannBoxes[DEG_IN_CIRCLE];
 int n = 0; //number of elements
 
 class X11_wrapper {
@@ -80,13 +97,17 @@ public:
 } x11;
 
 //Function prototypes
+void make_particle(int x, int y);
 void init_opengl(void);
 void physics(void);
-void build_rectangle(Box rec);
+void build_rectangle(Box rec, GLubyte red, GLubyte green, GLubyte blue);
+void build_circle(float rad, float xPosition, float yPosition);
+void riemann_init(Box & box, float deg, float radius, float xp, float yp);
+void build_riemann(Box box, Quadrant quad);
 void rectangle_collision(Box rec, Box & part);
+void circle_collision(Box rec, Box & part);
+//void text_rect(Rect & rec, int bot, int left, int center, const char string[]);
 void render(void);
-
-
 
 //=====================================
 // MAIN FUNCTION IS HERE
@@ -104,8 +125,10 @@ int main()
 			x11.check_mouse(&e);
 			done = x11.check_keys(&e);
 		}
+        make_particle(100, g.yres - 10);
 		physics();
 		render();
+        
 		x11.swapBuffers();
 		usleep(200);
 	}
@@ -211,14 +234,12 @@ void make_particle(int x, int y)
     if (n >= MAX_PARTICLES) {
 	return;
     }
-    printf("make particle(%i, %i)\n", x, y); fflush(stdout);
-    particles[n].w = 4.0;
-    particles[n].h = 4.0;
+    particles[n].w = 2.0;
+    particles[n].h = 2.0;
     particles[n].pos[0] = x;
     particles[n].pos[1] = y;
     particles[n].vel[0] = particles[n].vel[1] = 0.0f;
     ++n;
-    printf("n: %i\n", n); fflush(stdout);
 
 }
 void X11_wrapper::check_mouse(XEvent *e)
@@ -243,7 +264,6 @@ void X11_wrapper::check_mouse(XEvent *e)
 			//int y = g.yres - e->xbutton.y;
 			int y = g.yres - e->xbutton.y;
 			int x = e->xbutton.x;
-			make_particle(x,y);
 			return;
 		}
 		if (e->xbutton.button==3) {
@@ -296,53 +316,31 @@ void init_opengl(void)
 
 void physics()
 {
-    particle.vel[1] -= 0.10;
-    particle.pos[0] += particle.vel[0];
-    particle.pos[1] += particle.vel[1];
     //
     // check for collision
-    /*
-    if (particle.pos[1] < (box.pos[1] + box.w) &&
-	particle.pos[1] > (box.pos[1] - box.w) &&
-        particle.pos[0] > (box.pos[0] - box.w) &&
-	particle.pos[0] < (box.pos[0] + box.w)) {
-		particle.vel[1] = 0.0;
-		particle.vel[0] += 0.01;
-    }
-    */
-    //TODO: Use while loop to process moved array element
-    //TODO: Track down particle-generating bug
+    //
     for (int i = 0; i < n; i++) {
-	particles[i].vel[1] -= 0.05;
-	particles[i].pos[0] += particles[i].vel[0];
-	particles[i].pos[1] += particles[i].vel[1];
-	//
-	// check for collision
-	//
-	rectangle_collision(rec1, particles[i]);
-	rectangle_collision(rec2, particles[i]);
-	rectangle_collision(rec3, particles[i]);
-	rectangle_collision(rec4, particles[i]);
-	rectangle_collision(rec5, particles[i]);
-	/*
-	if (particles[i].pos[1] < (box.pos[1] + box.w) &&
-	    particles[i].pos[1] > (box.pos[1] - box.w) &&
-	    particles[i].pos[0] > (box.pos[0] - box.w) &&
-	    particles[i].pos[0] < (box.pos[0] + box.w)) {
-		    particles[i].vel[1] = 0.0;
-		    particles[i].vel[0] += 0.01;
-	}
-	*/
-	if (particles[i].pos[1] < 0.0) {
-	    particles[i] = particles[--n];
-	}
+        particles[i].vel[1] -= 0.05;
+        particles[i].pos[0] += particles[i].vel[0];
+        particles[i].pos[1] += particles[i].vel[1];
+        rectangle_collision(rec1, particles[i]);
+        rectangle_collision(rec2, particles[i]);
+        rectangle_collision(rec3, particles[i]);
+        rectangle_collision(rec4, particles[i]);
+        rectangle_collision(rec5, particles[i]);
+        for (int j = 0; j < DEG_IN_CIRCLE; ++j) {
+            circle_collision(riemannBoxes[j], particles[i]);
+        }
+        if (particles[i].pos[1] < 0.0) {
+            particles[i] = particles[--n];
+        }
     }
 }
 
-void build_rectangle(Box rec)
+void build_rectangle(Box rec, GLubyte red, GLubyte green, GLubyte blue)
 {
 	glPushMatrix();
-	glColor3ub(150, 160, 225);
+	glColor3ub(red, green, blue);
 	glTranslatef(rec.pos[0], rec.pos[1], 0.0f); //move it somewhere
 	glBegin(GL_QUADS);
 		glVertex2f(-rec.w, -rec.h);
@@ -353,68 +351,115 @@ void build_rectangle(Box rec)
 	glPopMatrix();
 }
 
-void build_circle()
+void build_circle(float rad, float xPosition, float yPosition)
 {
-    // TODO: declare the radius
-    glPushMatrix();
-    glColor3ub(150, 160, 225);
-    glTranslatef(700, -75, 0.0f);
-    glBegin(GL_LINE_STRIP);
-    		for (int i = 0; i < 360; ++i)
-		{
-		    ;
-		}
-    glEnd();
-    glPopMatrix();
+    int i = 0;
+    
+    for (int theta = 0; theta < 90; ++theta) {
+        riemann_init(riemannBoxes[i], theta, rad, xPosition, yPosition);
+        build_riemann(riemannBoxes[i] , I);
+        ++i;
+    }
+    for (int theta = 90; theta > 0; --theta) {
+        riemann_init(riemannBoxes[i], theta, rad, xPosition, yPosition);
+        build_riemann(riemannBoxes[i] , II);
+        ++i;
+    }
+    for (int theta = 0; theta < 90; ++theta) {
+        riemann_init(riemannBoxes[i], theta, rad, xPosition, yPosition);
+        build_riemann(riemannBoxes[i] , III);
+        ++i;
+    }
+    for (int theta = 90; theta > 0; --theta) {
+        riemann_init(riemannBoxes[i], theta, rad, xPosition, yPosition);
+        build_riemann(riemannBoxes[i] , IV);
+        ++i;
+    }
 }
-
+void riemann_init(Box & box, float deg, float radius, float xp, float yp)
+{
+    box.w = radius * sin(deg * 0.0175f);
+    box.h = radius * cos(deg * 0.0175f);
+    box.dir = 0.0f;
+    box.pos[0] = xp;
+    box.pos[1] = yp;
+    box.vel[0] = box.vel[1] = 0;
+}
+void build_riemann(Box box, Quadrant quad)
+{
+    switch (quad) {
+        case (I):
+            break;
+        case (II):
+            box.w = -box.w;
+            break;
+        case (III):
+            box.w = -box.w;
+            box.h = -box.h;
+            break;
+        case (IV):
+            box.h = -box.h;
+            break;
+    }
+    build_rectangle(box, 70, 100, 80);
+}
 void rectangle_collision(Box rec, Box & part)
 {
     if ((part.pos[1] - part.h) < (rec.pos[1] + rec.h) &&
         (part.pos[1] + part.h) > (rec.pos[1] - rec.h) &&
-	(part.pos[0] + part.w) > (rec.pos[0] - rec.w) &&
-	(part.pos[0] - part.w) < (rec.pos[0] + rec.w)) {
+	    (part.pos[0] + part.w) > (rec.pos[0] - rec.w) &&
+	    (part.pos[0] - part.w) < (rec.pos[0] + rec.w)) {
 	    part.vel[1] = 0.00;
 	    part.vel[0] += 0.01;
 	}
 }
-
+void circle_collision(Box rec, Box & part)
+{
+    if ((part.pos[1] - part.h) < (rec.pos[1] + rec.h) &&
+        (part.pos[1] + part.h) > (rec.pos[1] - rec.h) &&
+        (part.pos[0] + part.w) > (rec.pos[0] - rec.w) &&
+        (part.pos[0] - part.w) < (rec.pos[0] + rec.w)) {
+        part.vel[1] = 0.00;
+        part.vel[0] -= 0.01;
+    }
+}
+/*
+void text_rect(Rect & rec, int bot, int left, int center, const char string[])
+{
+    rec.bot    = bot;
+    rec.left   = left;
+    rec.center = center;
+    
+    ggprint8b(&rec, 16, 0, string[]);
+    
+}
+*/
 void render()
 {
-	//
 	glClear(GL_COLOR_BUFFER_BIT);
 	//Draw box.
-	
-	/*
-	glPushMatrix();
-	glColor3ub(150, 160, 220);
-	glTranslatef(box.pos[0], box.pos[1], 0.0f); //move it somewhere
-	glBegin(GL_QUADS);
-		glVertex2f(-box.w, -box.w);
-		glVertex2f(-box.w,  box.w);
-		glVertex2f( box.w,  box.w);
-		glVertex2f( box.w, -box.w);
-	glEnd();
-	glPopMatrix();
-	*/
+    
+    /*
+    Rect r1;
+    Rect r2;
+    Rect r3;
+    Rect r4;
+    Rect r5;
+     
+    text_rect(r1, g.yres - 30 - rec1.h, rec1.pos[0] - rec1.w, 0, str1);
+    text_rect(r1, g.yres - 60 - rec1.h, rec1.pos[0] - rec1.w, 0, str2);
+    text_rect(r1, g.yres - 90 - rec1.h, rec1.pos[0] - rec1.w, 0, str3);
+    text_rect(r1, g.yres - 120 - rec1.h, rec1.pos[0] - rec1.w, 0, str4);
+    text_rect(r1, g.yres - 150 - rec1.h, rec1.pos[0] - rec1.w, 0, str5);
+    */
 
-	build_rectangle(rec1);
-	build_rectangle(rec2);
-	build_rectangle(rec3);
-	build_rectangle(rec4);
-	build_rectangle(rec5);
-/*
-	glPushMatrix();
-	glColor3ub(150, 160, 225);
-	glTranslatef(box2.pos[0], box2.pos[1], 0.0f); //move it somewhere
-	glBegin(GL_QUADS);
-		glVertex2f(-box2.w, -box2.h);
-		glVertex2f(-box2.w,  box2.h);
-		glVertex2f( box2.w,  box2.h);
-		glVertex2f( box2.w, -box2.h);
-	glEnd();
-	glPopMatrix();
-*/
+	build_rectangle(rec1, 150, 225, 160);
+	build_rectangle(rec2, 150, 225, 160);
+	build_rectangle(rec3, 150, 225, 160);
+	build_rectangle(rec4, 150, 225, 160);
+	build_rectangle(rec5, 150, 225, 160);
+    build_circle(70.0f, g.xres - 60.0f, -20.0f);
+    
 	for (int i = 0; i < n; i++) {
 	    glPushMatrix();
 	    glColor3ub(150, 160, 255);
@@ -428,28 +473,6 @@ void render()
 	    glPopMatrix();
 	}
 
-        glPushMatrix();
-        glColor3ub(150, 160, 255);
-        glTranslatef(particle.pos[0], particle.pos[1], 0.0f);
-        glBegin(GL_QUADS);
-                glVertex2f(-particle.w, -particle.w);
-                glVertex2f(-particle.w,  particle.w);
-                glVertex2f( particle.w,  particle.w);
-                glVertex2f( particle.w, -particle.w);
-        glEnd();
-        glPopMatrix();
-
-	/*
-	pos[0] += dir;
-	if (pos[0] >= (g.xres-w)) {
-		pos[0] = (g.xres-w);
-		dir = -dir;
-	}
-	if (pos[0] <= w) {
-		pos[0] = w;
-		dir = -dir;
-	}
-	*/
 }
 
 
